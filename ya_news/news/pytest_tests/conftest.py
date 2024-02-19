@@ -1,0 +1,112 @@
+from datetime import datetime, timedelta
+
+import pytest
+
+from django.conf import settings
+from django.test.client import Client
+from django.urls import reverse
+
+from news.models import News, Comment
+
+
+@pytest.fixture
+def author(django_user_model):
+    return django_user_model.objects.create(username='Автор')
+
+
+@pytest.fixture
+def not_author(django_user_model):
+    return django_user_model.objects.create(username='Не автор')
+
+
+@pytest.fixture
+def author_client(author):
+    client = Client()
+    client.force_login(author)
+    return client
+
+
+@pytest.fixture
+def not_author_client(not_author):
+    client = Client()
+    client.force_login(not_author)
+    return client
+
+
+@pytest.fixture
+def news():
+    news = News.objects.create(
+        title='Заголовок',
+        text='Текст новости',
+    )
+    return news
+
+
+@pytest.fixture
+def set_of_news():
+    today = datetime.today()
+    set_of_news = News.objects.bulk_create(
+        News(title=f'Новость {index}',
+             text='Просто текст.',
+             date=today - timedelta(days=index))
+        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1))
+    return set_of_news
+
+
+@pytest.fixture
+def comment(author, news):
+    comment = Comment.objects.create(
+        text='Текст комментария',
+        author=author,
+        news=news
+    )
+    return comment
+
+
+@pytest.fixture
+def set_of_comments(news, author):
+    today = datetime.today()
+    set_of_comments = Comment.objects.bulk_create(
+        Comment(text=f'Текст комментария {index}',
+                news=news,
+                author=author,
+                created=today - timedelta(hours=index))
+        for index in range(5))
+    return set_of_comments
+
+
+@pytest.fixture
+def pk_for_args(news):
+    return (news.pk,)
+
+
+@pytest.fixture
+def pk_for_comment_args(comment):
+    return (comment.pk,)
+
+
+@pytest.fixture
+def form_data():
+    return {
+        'text': 'Новый текст комментария',
+    }
+
+
+@pytest.fixture
+def home_reverse():
+    return reverse('news:home')
+
+
+@pytest.fixture
+def detail_reverse(pk_for_args):
+    return reverse('news:detail', args=pk_for_args)
+
+
+@pytest.fixture
+def edit_reverse(pk_for_comment_args):
+    return reverse('news:edit', args=pk_for_comment_args)
+
+
+@pytest.fixture
+def delete_reverse(pk_for_comment_args):
+    return reverse('news:delete', args=pk_for_comment_args)
