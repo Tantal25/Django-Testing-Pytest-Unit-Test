@@ -19,6 +19,8 @@ class TestRoutes(TestCase):
             title='Заголовок', text='Текст', author=cls.author)
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.author)
+        cls.authorized_reader = Client()
+        cls.authorized_reader.force_login(cls.reader)
 
     def test_pages_availability(self):
         """
@@ -26,14 +28,14 @@ class TestRoutes(TestCase):
         аутентификации для пользователей.
         """
         urls = (
-            ('notes:home', None),
-            ('users:login', None),
-            ('users:logout', None),
-            ('users:signup', None),
+            ('notes:home'),
+            ('users:login'),
+            ('users:logout'),
+            ('users:signup'),
         )
-        for name, args in urls:
+        for name in urls:
             with self.subTest(name=name):
-                url = reverse(name, args=args)
+                url = reverse(name)
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
@@ -43,15 +45,14 @@ class TestRoutes(TestCase):
         редактирования и удаления заметок для автора.
         """
         users_statuses = (
-            (self.author, HTTPStatus.OK),
-            (self.reader, HTTPStatus.NOT_FOUND),
+            (self.authorized_client, HTTPStatus.OK),
+            (self.authorized_reader, HTTPStatus.NOT_FOUND),
         )
         for user, status in users_statuses:
-            self.client.force_login(user)
             for name in ('notes:edit', 'notes:delete', 'notes:detail'):
                 with self.subTest(user=user, name=name):
                     url = reverse(name, args=(self.note.slug,))
-                    response = self.client.get(url)
+                    response = user.get(url)
                     self.assertEqual(response.status_code, status)
 
     def test_authorized_user_availability_for_notes(self):

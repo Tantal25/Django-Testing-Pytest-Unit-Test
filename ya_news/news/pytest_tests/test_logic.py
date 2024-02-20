@@ -1,8 +1,8 @@
-from pytest_django.asserts import assertRedirects, assertFormError
-import pytest
 from http import HTTPStatus
 
 from django.urls import reverse
+import pytest
+from pytest_django.asserts import assertRedirects, assertFormError
 
 from news.models import Comment
 from news.forms import WARNING, BAD_WORDS
@@ -19,7 +19,7 @@ def test_anonymous_user_cant_create_comment(client, form_data, detail_reverse):
 
 
 def test_user_can_create_comment(
-        author_client, author, form_data, detail_reverse
+    author_client, author, form_data, detail_reverse, news
 ):
     """Тест на создание комментария авторизированным пользователем."""
     response = author_client.post(detail_reverse, data=form_data)
@@ -28,11 +28,14 @@ def test_user_can_create_comment(
     new_comment = Comment.objects.get()
     assert new_comment.text == form_data['text']
     assert new_comment.author == author
+    assert new_comment.news == news
 
 
-def test_user_cant_use_bad_words(author_client, detail_reverse):
+@pytest.mark.parametrize(
+    'bad_words', {BAD_WORDS},)
+def test_user_cant_use_bad_words(author_client, detail_reverse, bad_words):
     """Тест на применение запрещенных слов."""
-    bad_words_data = {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}
+    bad_words_data = {'text': f'Какой-то текст, {bad_words}, еще текст'}
     response = author_client.post(detail_reverse, data=bad_words_data)
     assertFormError(
         response,
@@ -40,8 +43,7 @@ def test_user_cant_use_bad_words(author_client, detail_reverse):
         field='text',
         errors=WARNING
     )
-    comments_count = Comment.objects.count()
-    assert comments_count == 0
+    assert Comment.objects.count() == 0
 
 
 def test_author_can_edit_comment(
@@ -62,17 +64,18 @@ def test_author_can_delete_note(author_client, delete_reverse, detail_reverse):
 
 
 def test_other_user_cant_edit_note(
-    not_author_client, form_data, news, comment, edit_reverse
+    admin_client, form_data, comment, edit_reverse
 ):
     """Тест на невозможность редактирования комментария не автором."""
-    response = not_author_client.post(edit_reverse, form_data)
+    text_of_comment = comment.text
+    response = admin_client.post(edit_reverse, form_data)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    note_from_db = Comment.objects.get(id=news.id)
-    assert comment.text == note_from_db.text
+    comment.refresh_from_db()
+    assert comment.text == text_of_comment
 
 
-def test_other_user_cant_delete_note(not_author_client, delete_reverse):
+def test_other_user_cant_delete_note(admin_client, delete_reverse):
     """Тест на невозможность удаления комментария не автором."""
-    response = not_author_client.post(delete_reverse)
+    response = admin_client.post(delete_reverse)
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert Comment.objects.count() == 1

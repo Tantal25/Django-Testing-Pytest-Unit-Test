@@ -9,8 +9,9 @@ from news.forms import CommentForm
 def test_news_on_page_count(client, set_of_news, home_reverse):
     """Тест на количество новостей на одной странице."""
     response = client.get(home_reverse)
+    assert 'object_list' in response.context
     object_list = response.context['object_list']
-    news_count = object_list.count()
+    news_count = len(object_list)
     assert news_count == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
@@ -25,9 +26,13 @@ def test_news_order(client, set_of_news, home_reverse):
 
 
 @pytest.mark.django_db
-def test_comment_order(set_of_comments):
-    """Тест на порядок комментариев у новости."""
-    all_timestamps = [comment.created for comment in set_of_comments]
+def test_comment_order(client, set_of_comments, detail_reverse):
+    """Тест на порядок комментариев к новости."""
+    response = client.get(detail_reverse)
+    assert 'news' in response.context
+    news = response.context['news']
+    all_comments = news.comment_set.all()
+    all_timestamps = [comment.created for comment in all_comments]
     sorted_timestamps = sorted(all_timestamps)
     assert all_timestamps == sorted_timestamps
 
