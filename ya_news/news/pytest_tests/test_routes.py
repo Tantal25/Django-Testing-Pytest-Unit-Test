@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
-from django.urls import reverse
 import pytest
+from django.urls import reverse
 from pytest_django.asserts import assertRedirects
 
 
@@ -18,8 +18,8 @@ from pytest_django.asserts import assertRedirects
 @pytest.mark.django_db
 def test_pages_availability_for_anonymous_user(client, name, args):
     """
-    Тест на доступность страницы аутентификации, регистрации
-    и главной страницы для анонимного пользователя.
+    Тест на доступность страницы аутентификации, регистрации,
+    а также главной страницы и отдельной новости для анонимного пользователя.
     """
     response = client.get(reverse(name, args=args))
     assert response.status_code == HTTPStatus.OK

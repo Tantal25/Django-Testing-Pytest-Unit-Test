@@ -1,5 +1,4 @@
 import pytest
-
 from django.conf import settings
 
 from news.forms import CommentForm
@@ -19,6 +18,7 @@ def test_news_on_page_count(client, set_of_news, home_reverse):
 def test_news_order(client, set_of_news, home_reverse):
     """Тест на порядок новостей на странице."""
     response = client.get(home_reverse)
+    assert 'object_list' in response.context
     object_list = response.context['object_list']
     all_dates = [news.date for news in object_list]
     sorted_dates = sorted(all_dates, reverse=True)
