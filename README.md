@@ -1,4 +1,4 @@
-# Проект по работе с Unit test и Pytest
+# Примеры работы с Unit test и Pytest
 ```
 Dev
  └── django_testing
