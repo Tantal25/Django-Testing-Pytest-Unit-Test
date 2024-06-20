@@ -1,4 +1,4 @@
-# Django testing  
+# Проект по работе с Untitest и Pytest
 ```
 Dev
  └── django_testing
